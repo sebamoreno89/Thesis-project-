@@ -1,0 +1,186 @@
+
+
+import glob
+import pandas as pd 
+import os 
+import matplotlib.pyplot as plt  
+import seaborn as sns
+
+from scipy import stats
+import numpy as np
+
+
+##·os.chdir("/Users/sebastianmorenoramirez/GoogleDrive/Lab.RG/Resultados/Adrienne_Lab/Confocal/2018/Col-0/correlation_growthrate_birtharea/All_data")
+
+path = "*.csv"
+files = glob.glob(path)
+
+area_R7 = pd.DataFrame()
+area_R3 = pd.DataFrame()
+area_R2 = pd.DataFrame()
+
+
+for i in files:      
+    if "R7" in i and "d4" in i:  
+        temp1 = pd.read_csv(i)
+        temp1 = temp1.dropna() 
+    elif "R7" in i and "d7" in i: 
+        temp2 = pd.read_csv(i)
+        temp2 = temp2.dropna() 
+        merge = pd.merge(temp1,temp2, on = "Label")
+        area_R7 = pd.concat([area_R7,merge])
+    
+        
+     
+area_R7 = area_R7[area_R7["Area (µm²)_y"]>600]
+area_R7 = area_R7[area_R7["Value_y"]<10]
+
+        
+
+ax = sns.jointplot(x= np.log(area_R7["Area (µm²)_x"]), 
+                   y = area_R7["Value_y"],
+                   color = "black",
+                   xlim = (4,8.5),
+                   kind = "reg")   
+
+
+ax.savefig("birth_growthrate_corr_R7_filter_area.pdf")
+
+
+for i in files:      
+    if "R2" in i and "d4" in i:  
+        temp1 = pd.read_csv(i)
+        temp1 = temp1.dropna() 
+    elif "R2" in i and "d7" in i: 
+        temp2 = pd.read_csv(i)
+        temp2 = temp2.dropna() 
+        merge = pd.merge(temp1,temp2, on = "Label")
+        area_R2 = pd.concat([area_R2,merge])
+            
+            
+     
+area_R2 = area_R2[area_R2["Area (µm²)_y"]>600]
+area_R2 = area_R2[area_R2["Value_y"]<10]
+
+        
+
+ax1 = sns.jointplot(x= np.log(area_R2["Area (µm²)_x"]), 
+                   y = area_R2["Value_y"],
+                   color = "black",
+                   xlim = (4.5,8.5),
+                   kind = "reg")         
+
+ax1.savefig("birth_growthrate_corr_R2_filter_area.pdf")
+            
+        
+for i in files:      
+    if "R3" in i and "d4" in i:  
+        temp1 = pd.read_csv(i)
+        temp1 = temp1.dropna() 
+    elif "R3" in i and "d7" in i: 
+        temp2 = pd.read_csv(i)
+        temp2 = temp2.dropna() 
+        merge = pd.merge(temp1,temp2, on = "Label")
+        area_R3 = pd.concat([area_R3,merge])
+        
+        
+area_R3 = area_R3[area_R3["Area (µm²)_y"]>600]
+area_R3 = area_R3[area_R3["Value_y"]<10]
+
+        
+
+ax1 = sns.jointplot(x= np.log(area_R3["Area (µm²)_x"]), 
+                   y = area_R3["Value_y"],
+                   color = "black",
+                   xlim = (4.5,8.5),
+                   kind = "reg")      
+
+ax2.savefig("birth_growthrate_corr_R3_filter_area.pdf")       
+           
+
+all_replicates = pd.concat([area_R2,area_R3,area_R7])
+
+ 
+all_replicates.columns.values[6] = "Cell growth rate"   
+all_replicates.columns.values[2] = "log(Birth Area (µm²))"      
+           
+all_replicates = all_replicates[all_replicates["Area (µm²)_y"]>600]
+ 
+
+
+ax1 = sns.jointplot(x= np.log(all_replicates["Area (µm²)_x"]), 
+                   y = all_replicates["Value_y"],
+                   color = "black",
+                   xlim = (4.5,8.5),
+                   kind = "reg")    
+ax1.set_axis_labels("log(cell area at day3)", 
+                    'Cell growth rate', fontsize=12)
+
+
+
+ax1.savefig("birth_growthrate_corr_ALL_filter(600)_day4.pdf")                                                                                    
+
+
+
+
+##### New analysis, adding 0 mM Nitrate
+
+area_0mM = pd.DataFrame()
+area_5mM = pd.DataFrame()
+
+
+lista = sorted(set([s[3:29] for s in files]))
+
+for i in lista: 
+    temp1 = pd.read_csv("d4_" + i)
+    temp1 = temp1.dropna() 
+    temp2 = pd.read_csv("d7_" + i)
+    temp2 = temp2.dropna()
+    merge = pd.merge(temp1,temp2, on = "Label")
+    merge["Nitrate"] = i.split("_")[0]
+    merge["Replicate"] = i.split("_")[3]
+    if "0mM" in i: 
+        area_0mM = pd.concat([area_0mM, merge])
+    if "5mM" in i: 
+        area_5mM = pd.concat([area_5mM, merge])
+        
+
+area_0mM = area_0mM[area_0mM["Area (µm²)_y"]>600]
+
+
+both = pd.concat([area_0mM, area_5mM])
+both = both[both["Area (µm²)_y"]>600]
+both = both[both["Value_y"]<10]
+both["log(birth_area)"] = np.log(both["Area (µm²)_x"])
+
+
+        
+ax1 = sns.lmplot(x= "log(birth_area)", y = "Value_y", 
+                   data = both,
+                   hue = "Nitrate",
+                   palette = ("red", "black"),
+                   fit_reg= False)
+
+
+ax2 = sns.lmplot(x= "Area (µm²)_x", y = "Value_y", 
+                   data = both,
+                   hue = "Nitrate",
+                   palette = ("red", "black"),
+                   fit_reg= False)
+                     
+
+### To calculate the pearson correlation
+
+ax1 = sns.jointplot(x= np.log(area_0mM["Area (µm²)_x"]), 
+                   y = area_0mM["Value_y"],
+                   color = "black",
+                   kind = "reg")  
+
+ax1 = sns.jointplot(x= np.log(area_5mM["Area (µm²)_x"]), 
+                   y = area_5mM["Value_y"],
+                   color = "black",
+                   xlim = (4.5,8.5),
+                   kind = "reg")   
+
+
+
